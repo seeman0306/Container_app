@@ -55,13 +55,14 @@ class AuthService {
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
       await SecureTokenStorage.saveAuthData(
-        accessToken: body['token'],
-        refreshToken: body['refresh_token'],
+        accessToken: body['token'] ?? '',
+        refreshToken: body['refresh_token'] ?? '',
         role: body['role'] ?? 'CITIZEN',
       );
       if (body['user_id'] != null) {
         await SecureTokenStorage.saveUserId(body['user_id'].toString());
       }
+      await SecureTokenStorage.savePhone(phoneNumber);
       return body;
     } else {
       final body = jsonDecode(response.body);

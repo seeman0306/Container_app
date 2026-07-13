@@ -14,6 +14,7 @@ class SecureTokenStorage {
   static const String _refreshTokenKey = "refresh_token";
   static const String _roleKey = "user_role";
   static const String _userIdKey = "user_id";
+  static const String _phoneKey = "user_phone";
 
   static Future<void> saveAccessToken(String token) async {
     await _storage.write(key: _accessTokenKey, value: token);
@@ -45,6 +46,14 @@ class SecureTokenStorage {
 
   static Future<String?> getUserId() async {
     return await _storage.read(key: _userIdKey);
+  }
+
+  static Future<void> savePhone(String phone) async {
+    await _storage.write(key: _phoneKey, value: phone);
+  }
+
+  static Future<String?> getPhone() async {
+    return await _storage.read(key: _phoneKey);
   }
 
   static Future<void> saveAuthData({

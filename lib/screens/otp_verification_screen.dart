@@ -52,65 +52,67 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 40),
-            Text(
-              "Verification",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue.shade900,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "Enter the 6-digit code sent to ${widget.phoneNumber}",
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 48),
-            TextField(
-              controller: _otpController,
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              maxLength: 6,
-              style: const TextStyle(fontSize: 24, letterSpacing: 8),
-              decoration: InputDecoration(
-                counterText: "",
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 40),
+              Text(
+                "Verification",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade900,
                 ),
               ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _verifyOtp,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade800,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 12),
+              Text(
+                "Enter the 6-digit code sent to ${widget.phoneNumber}",
+                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 48),
+              TextField(
+                controller: _otpController,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                maxLength: 6,
+                style: const TextStyle(fontSize: 24, letterSpacing: 8),
+                decoration: InputDecoration(
+                  counterText: "",
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
-              child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text("VERIFY & PROCEED", style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 24),
-            TextButton(
-              onPressed: () {
-                // Resend logic if needed
-              },
-              child: const Text("Didn't receive code? Resend OTP"),
-            ),
-          ],
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _verifyOtp,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade800,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("VERIFY & PROCEED", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 24),
+              TextButton(
+                onPressed: () {
+                  // Resend logic if needed
+                },
+                child: const Text("Didn't receive code? Resend OTP"),
+              ),
+            ],
+          ),
         ),
       ),
     );

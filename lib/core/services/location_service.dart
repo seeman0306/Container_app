@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -34,12 +35,31 @@ class LocationService {
       final String response = await rootBundle.loadString('assets/data/wards.json');
       final List<dynamic> wards = json.decode(response);
 
+      // 1. Try exact polygon intersection
       for (var ward in wards) {
         final List<dynamic> polygon = ward['polygon'];
         if (_isPointInPolygon(lng, lat, polygon)) {
           return ward['ward'].toString();
         }
       }
+
+      // 2. Fallback: Find closest ward by boundary distance (from closest_ward.py)
+      double minDist = double.infinity;
+      String? closestWard;
+
+      for (var ward in wards) {
+        final List<dynamic> polygon = ward['polygon'];
+        for (var pt in polygon) {
+          final double px = pt[0].toDouble(); // lng
+          final double py = pt[1].toDouble(); // lat
+          final double dist = math.sqrt(math.pow(px - lng, 2) + math.pow(py - lat, 2));
+          if (dist < minDist) {
+            minDist = dist;
+            closestWard = ward['ward'].toString();
+          }
+        }
+      }
+      return closestWard;
     } catch (e) {
       print("Error detecting ward: $e");
     }

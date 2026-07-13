@@ -45,7 +45,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -53,60 +52,65 @@ class _LoginScreenState extends State<LoginScreen> {
             colors: [Colors.blue.shade800, Colors.blue.shade400],
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Icon(Icons.location_city, size: 100, color: Colors.white),
-            const SizedBox(height: 32),
-            const Text(
-              "Urban Smart City",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Sign in to continue",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-            ),
-            const SizedBox(height: 48),
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: "Phone Number",
-                hintStyle: const TextStyle(color: Colors.white60),
-                prefixIcon: const Icon(Icons.phone, color: Colors.white70),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.2),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(Icons.location_city, size: 100, color: Colors.white),
+                const SizedBox(height: 32),
+                const Text(
+                  "Urban Smart City",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _sendOtp,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.blue.shade800,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 8),
+                const Text(
+                  "Sign in to continue",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
-              ),
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text("SEND OTP", style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 48),
+                TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: "Phone Number",
+                    hintStyle: const TextStyle(color: Colors.white60),
+                    prefixIcon: const Icon(Icons.phone, color: Colors.white70),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.2),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _sendOtp,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.blue.shade800,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text("SEND OTP", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

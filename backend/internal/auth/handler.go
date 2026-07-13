@@ -46,14 +46,15 @@ func SendOTP(c *gin.Context) {
 	code := fmt.Sprintf("%06d", rand.Intn(1000000))
 
 	// Store OTP in database with 5-min expiry
-	expiry := time.Now().Add(5 * time.Minute)
-	_, err := db.DB.Exec("INSERT INTO otp_verification (phone_number, otp_code, expires_at) VALUES ($1, $2, $3)",
-		req.Phone, code, expiry)
+	_, err := db.DB.Exec("INSERT INTO otp_verification (phone_number, otp_code, expires_at) VALUES ($1, $2, NOW() + INTERVAL '5 minutes')",
+		req.Phone, code)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store OTP"})
 		return
 	}
+
+	fmt.Printf("\n--- GENERATED OTP FOR %s: %s ---\n", req.Phone, code)
 
 	// In a real app, you would send this via SMS API. For now, we return it in response for testing.
 	c.JSON(http.StatusOK, gin.H{"message": "OTP sent successfully", "code": code})
@@ -85,8 +86,8 @@ func VerifyOTP(c *gin.Context) {
 	}
 
 	var otpID int
-	err := db.DB.QueryRow("SELECT otp_id FROM otp_verification WHERE phone_number = $1 AND otp_code = $2 AND is_verified = FALSE AND expires_at > $3",
-		req.Phone, req.Code, time.Now()).Scan(&otpID)
+	err := db.DB.QueryRow("SELECT otp_id FROM otp_verification WHERE phone_number = $1 AND otp_code = $2 AND is_verified = FALSE AND expires_at > NOW()",
+		req.Phone, req.Code).Scan(&otpID)
 
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired OTP"})

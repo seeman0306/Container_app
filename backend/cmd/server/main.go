@@ -25,6 +25,7 @@ func main() {
 	staff.StartEscalationJob()
 
 	r := gin.Default()
+	r.Use(CORSMiddleware())
 
 	// Public routes
 	r.GET("/api/auth/captcha", auth.GetCaptcha)
@@ -38,6 +39,12 @@ func main() {
 	// Citizen routes
 	api.POST("/citizen/complaints", complaint.RaiseComplaint)
 	api.GET("/citizen/my-complaints", complaint.GetMyComplaints)
+
+	// Citizen Water Utility routes
+	api.POST("/citizen/water-utility/complaints", complaint.RaiseWaterComplaint)
+	api.GET("/citizen/water-utility/my-complaints", complaint.GetWaterComplaints)
+	api.GET("/citizen/water-utility/complaints/:id", complaint.GetWaterComplaintDetail)
+	api.POST("/citizen/water-utility/classify", complaint.ClassifyImage)
 
 	// Staff routes
 	api.GET("/field-officer/work-orders", staff.GetWorkOrders)
@@ -94,6 +101,22 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		c.Set("user_id", userID)
 		c.Set("role", role)
+		c.Next()
+	}
+}
+
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
 		c.Next()
 	}
 }

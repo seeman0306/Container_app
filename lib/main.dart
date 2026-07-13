@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'core/utils/secure_token_storage.dart';
@@ -8,7 +9,11 @@ void main() async {
 
   final bool loggedIn = await SecureTokenStorage.isLoggedIn();
 
-  runApp(SmartCityApp(startScreen: loggedIn ? const DashboardScreen() : const LoginScreen()));
+  runApp(
+    ProviderScope(
+      child: SmartCityApp(startScreen: loggedIn ? const DashboardScreen() : const LoginScreen()),
+    ),
+  );
 }
 
 class SmartCityApp extends StatelessWidget {

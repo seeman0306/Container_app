@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 module smart-city-backend
 
 go 1.21
@@ -8,3 +9,8 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 )
+=======
+module smart_city_backend
+
+go 1.26.5
+>>>>>>> 47692630f6af91f1ffdb330267b6a20f5d05c953

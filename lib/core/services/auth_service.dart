@@ -22,11 +22,12 @@ class AuthService {
 
   static Future<bool> sendOtp(String phoneNumber, [String? captchaId, String? captchaValue]) async {
     final Map<String, dynamic> body = {"phone": phoneNumber};
+    // Captcha is optional in our new Go backend for now
     if (captchaId != null) body["captchaID"] = captchaId;
     if (captchaValue != null) body["captcha"] = captchaValue;
 
     final response = await ApiClient.publicPost(
-      "/api/auth/citizen/send-otp",
+      "/api/auth/send-otp",
       body,
     );
 
@@ -47,7 +48,7 @@ class AuthService {
     if (role != null) body["role"] = role;
 
     final response = await ApiClient.publicPost(
-      "/api/auth/citizen/verify-otp",
+      "/api/auth/verify-otp",
       body,
     );
 

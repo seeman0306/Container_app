@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:smart_city_container/core/utils/secure_token_storage.dart';
+import 'screens/garbage_home_page.dart';
 
 class GarbageMonitoringModule extends StatefulWidget {
   const GarbageMonitoringModule({super.key});
@@ -48,25 +49,7 @@ class _GarbageMonitoringModuleState extends State<GarbageMonitoringModule> {
   }
 
   Widget _buildCitizenLayout() {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Solid Waste Monitor (Citizen)")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _buildStatCard("Local Dumpster Fill Rate", "42% (Normal)", Colors.green),
-            const SizedBox(height: 16),
-            const Card(
-              child: ListTile(
-                leading: Icon(Icons.delete, color: Colors.blue),
-                title: Text("Next Pick-Up Schedule"),
-                subtitle: Text("Tomorrow at 07:30 AM"),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return const GarbageHomePage();
   }
 
   Widget _buildOfficerLayout() {

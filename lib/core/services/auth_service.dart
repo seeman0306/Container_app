@@ -27,7 +27,7 @@ class AuthService {
     if (captchaValue != null) body["captcha"] = captchaValue;
 
     final response = await ApiClient.publicPost(
-      "/api/auth/send-otp",
+      "/api/auth/citizen/send-otp",
       body,
     );
 
@@ -48,7 +48,7 @@ class AuthService {
     if (role != null) body["role"] = role;
 
     final response = await ApiClient.publicPost(
-      "/api/auth/verify-otp",
+      "/api/auth/citizen/verify-otp",
       body,
     );
 

@@ -51,10 +51,14 @@ class _CitizenLoginPhoneState extends State<CitizenLoginPhone> {
 
   Future<void> sendOtp() async {
     final entered = phoneCtrl.text.trim();
+    final phoneRegex = RegExp(r'^[6-9]\d{9}$');
 
-    if (entered.length != 10) {
+    if (!phoneRegex.hasMatch(entered)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter valid 10-digit number")),
+        const SnackBar(
+          content: Text("Enter a valid 10-digit number starting with 6, 7, 8, or 9"),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }

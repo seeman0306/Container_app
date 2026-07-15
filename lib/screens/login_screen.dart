@@ -15,9 +15,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _sendOtp() async {
     final phone = _phoneController.text.trim();
-    if (phone.length < 10) {
+
+    // Regular expression for: Starts with 6,7,8,9 and exactly 10 digits
+    final phoneRegex = RegExp(r'^[6-9]\d{9}$');
+
+    if (!phoneRegex.hasMatch(phone)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a valid phone number")),
+        const SnackBar(
+          content: Text("Please enter a valid 10-digit phone number starting with 6, 7, 8, or 9"),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }

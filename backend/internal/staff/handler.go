@@ -8,22 +8,21 @@ import (
 )
 
 func GetWorkOrders(c *gin.Context) {
-	// In a real app, you'd get the officer_id linked to the user_id
-	userID := c.GetInt("user_id")
+	phone := c.GetString("phone")
 	var officerID int
-	err := db.DB.QueryRow("SELECT officer_id FROM field_officers WHERE user_id = $1", userID).Scan(&officerID)
+	err := db.DB.QueryRow("SELECT officer_id FROM field_officers WHERE phone_number = $1", phone).Scan(&officerID)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "not a field officer"})
 		return
 	}
 
-	rows, err := db.DB.Query(`SELECT w.work_order_id, c.complaint_title, c.ward_no, w.assigned_date, w.work_order_status
+	rows, err := db.DB.Query(`SELECT w.work_order_id, c.reason, c.ward_no, w.assigned_date, w.work_order_status
 		FROM work_orders w
 		JOIN complaints c ON w.complaint_id = c.complaint_id
 		WHERE w.officer_id = $1`, officerID)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch work orders"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch work orders: " + err.Error()})
 		return
 	}
 	defer rows.Close()
@@ -78,11 +77,11 @@ func ActionWorkOrder(c *gin.Context) {
 }
 
 func GetTodoList(c *gin.Context) {
-	userID := c.GetInt("user_id")
+	phone := c.GetString("phone")
 	var officerID int
-	db.DB.QueryRow("SELECT officer_id FROM field_officers WHERE user_id = $1", userID).Scan(&officerID)
+	db.DB.QueryRow("SELECT officer_id FROM field_officers WHERE phone_number = $1", phone).Scan(&officerID)
 
-	rows, err := db.DB.Query(`SELECT t.todo_id, c.complaint_title, t.completion_status
+	rows, err := db.DB.Query(`SELECT t.todo_id, c.reason, t.completion_status
 		FROM todo_list t
 		JOIN work_orders w ON t.work_order_id = w.work_order_id
 		JOIN complaints c ON w.complaint_id = c.complaint_id
@@ -119,7 +118,7 @@ func CompleteTask(c *gin.Context) {
 
 	// Update work order status as well
 	var woID int
-	db.DB.QueryRow("UPDATE todo_list SET completion_status = 'Completed' WHERE todo_id = $1 RETURNING work_order_id", todoID).Scan(&woID)
+	db.DB.QueryRow("SELECT work_order_id FROM todo_list WHERE todo_id = $1", todoID).Scan(&woID)
 	db.DB.Exec("UPDATE work_orders SET work_order_status = 'Completed' WHERE work_order_id = $1", woID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "task completed successfully"})

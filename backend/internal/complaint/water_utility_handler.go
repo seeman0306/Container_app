@@ -33,30 +33,25 @@ func RaiseWaterComplaint(c *gin.Context) {
 		return
 	}
 
-	userID := c.GetInt("user_id")
+	userPhone := c.GetString("phone")
 
 	// Look up the module ID for "Water Utility"
 	var moduleID int
 	err := db.DB.QueryRow("SELECT module_id FROM modules WHERE module_name = 'Water Utility'").Scan(&moduleID)
-	if err != nil {
-		// Fallback if not found (seed it dynamically)
-		db.DB.QueryRow("INSERT INTO modules (module_name) VALUES ('Water Utility') RETURNING module_id").Scan(&moduleID)
-	}
 
-	query := `INSERT INTO complaints 
-		(user_id, module_id, complaint_title, complaint_description, ward_no, complaint_address, latitude, longitude, complaint_photo, 
-		 user_phone, category, reason, severity, ai_detected_issue, ai_confidence, status) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) 
-		RETURNING complaint_id`
+	// Automatically assign officer based on module and ward
+	var officerID sql.NullInt64
+	db.DB.QueryRow("SELECT officer_id FROM ward_mapping WHERE module_id = $1 AND ward_no = $2",
+		moduleID, req.WardNo).Scan(&officerID)
 
-	title := req.Category + ": " + req.Reason
-	description := "Reported: " + req.Reason + " with severity " + req.Severity
-	status := "Pending"
+	query := `INSERT INTO complaints
+		(user_phone, module_id, ward_no, location, latitude, longitude, complaint_photo,
+		 reason, severity, ai_detected_issue, ai_confidence, status, assigned_officer_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
 
-	var complaintID int
-	err = db.DB.QueryRow(query,
-		userID, moduleID, title, description, req.WardNo, req.Location, req.Latitude, req.Longitude, req.ComplaintPhoto,
-		req.UserPhone, req.Category, req.Reason, req.Severity, req.AIDetectedIssue, req.AIConfidence, status).Scan(&complaintID)
+	_, err = db.DB.Exec(query,
+		userPhone, moduleID, req.WardNo, req.Location, req.Latitude, req.Longitude, req.ComplaintPhoto,
+		req.Reason, req.Severity, req.AIDetectedIssue, req.AIConfidence, "PENDING", officerID)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to raise water complaint: " + err.Error()})
@@ -64,28 +59,27 @@ func RaiseWaterComplaint(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":      "water utility complaint raised successfully",
-		"complaint_id": complaintID,
+		"message": "water utility complaint raised successfully",
 	})
 }
 
 func GetWaterComplaints(c *gin.Context) {
-	userID := c.GetInt("user_id")
+	userPhone := c.GetString("phone")
 	statusFilter := c.Query("status")
 
-	query := `SELECT complaint_id, reason, severity, ward_no, complaint_address, status, created_at 
+	query := `SELECT complaint_id, reason, severity, ward_no, location, status, created_at
 	          FROM complaints 
-	          WHERE user_id = $1 AND (category = 'Water Utility' OR module_id = (SELECT module_id FROM modules WHERE module_name = 'Water Utility'))`
+	          WHERE user_phone = $1 AND module_id = (SELECT module_id FROM modules WHERE module_name = 'Water Utility')`
 
 	var rows *sql.Rows
 	var err error
 
 	if statusFilter != "" && statusFilter != "All" {
 		query += " AND status = $2 ORDER BY created_at DESC"
-		rows, err = db.DB.Query(query, userID, statusFilter)
+		rows, err = db.DB.Query(query, userPhone, statusFilter)
 	} else {
 		query += " ORDER BY created_at DESC"
-		rows, err = db.DB.Query(query, userID)
+		rows, err = db.DB.Query(query, userPhone)
 	}
 
 	if err != nil {
@@ -96,7 +90,8 @@ func GetWaterComplaints(c *gin.Context) {
 
 	complaints := []map[string]interface{}{}
 	for rows.Next() {
-		var id, ward int
+		var id string
+		var ward int
 		var reason, severity, location, status, createdAt string
 		if err := rows.Scan(&id, &reason, &severity, &ward, &location, &status, &createdAt); err != nil {
 			continue
@@ -117,25 +112,24 @@ func GetWaterComplaints(c *gin.Context) {
 
 func GetWaterComplaintDetail(c *gin.Context) {
 	complaintID := c.Param("id")
-	userID := c.GetInt("user_id")
+	userPhone := c.GetString("phone")
 
-	query := `SELECT c.complaint_id, c.category, c.reason, c.severity, c.ward_no, c.complaint_address, 
+	query := `SELECT c.complaint_id, c.reason, c.severity, c.ward_no, c.location,
 	                 c.latitude, c.longitude, c.complaint_photo, c.ai_detected_issue, c.ai_confidence, 
 	                 c.status, c.created_at, c.assigned_officer_id, f.officer_name 
 	          FROM complaints c
 	          LEFT JOIN field_officers f ON c.assigned_officer_id = f.officer_id
-	          WHERE c.complaint_id = $1 AND c.user_id = $2`
+	          WHERE c.complaint_id = $1 AND c.user_phone = $2`
 
-	var id, ward int
-	var category, reason, severity, location, createdAt, status string
+	var id, status, createdAt, reason, severity, location string
+	var ward int
 	var latitude, longitude float64
-	var photo, aiDetected sql.NullString
+	var photo, aiDetected, officerName sql.NullString
 	var aiConfidence sql.NullFloat64
 	var assignedOfficerID sql.NullInt64
-	var officerName sql.NullString
 
-	err := db.DB.QueryRow(query, complaintID, userID).Scan(
-		&id, &category, &reason, &severity, &ward, &location,
+	err := db.DB.QueryRow(query, complaintID, userPhone).Scan(
+		&id, &reason, &severity, &ward, &location,
 		&latitude, &longitude, &photo, &aiDetected, &aiConfidence,
 		&status, &createdAt, &assignedOfficerID, &officerName,
 	)
@@ -176,7 +170,6 @@ func GetWaterComplaintDetail(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"complaint_id":        id,
-		"category":            category,
 		"reason":              reason,
 		"severity":            severity,
 		"ward_no":             ward,
@@ -191,12 +184,6 @@ func GetWaterComplaintDetail(c *gin.Context) {
 		"assigned_officer_id": resOfficerID,
 		"assigned_officer":    resOfficerName,
 	})
-}
-
-type ClassifyResponse struct {
-	PredictedIssue     string  `json:"predicted_issue"`
-	ConfidenceScore    float64 `json:"confidence_score"`
-	SeveritySuggestion string  `json:"severity_suggestion"`
 }
 
 func ClassifyImage(c *gin.Context) {
@@ -263,9 +250,9 @@ func ClassifyImage(c *gin.Context) {
 		severity = "Low"
 	}
 
-	c.JSON(http.StatusOK, ClassifyResponse{
-		PredictedIssue:     matchedClass,
-		ConfidenceScore:    confidence,
-		SeveritySuggestion: severity,
+	c.JSON(http.StatusOK, gin.H{
+		"predicted_issue":     matchedClass,
+		"confidence_score":    confidence,
+		"severity_suggestion": severity,
 	})
 }

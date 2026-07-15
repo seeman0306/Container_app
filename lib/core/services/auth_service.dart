@@ -12,7 +12,7 @@ class AuthService {
   }
 
   static Future<Map<String, String>> getCaptcha() async {
-    final response = await ApiClient.publicGet("/api/auth/citizen/captcha");
+    final response = await ApiClient.publicGet("/api/auth/captcha");
     if (response.statusCode == 200) {
       return Map<String, String>.from(jsonDecode(response.body));
     } else {
@@ -26,17 +26,27 @@ class AuthService {
     if (captchaId != null) body["captchaID"] = captchaId;
     if (captchaValue != null) body["captcha"] = captchaValue;
 
-    final response = await ApiClient.publicPost(
-      "/api/auth/citizen/send-otp",
-      body,
-    );
+    try {
+      final response = await ApiClient.publicPost(
+        "/api/auth/send-otp",
+        body,
+      );
 
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-      return body['is_officer'] ?? false;
-    } else {
-      final body = jsonDecode(response.body);
-      throw Exception(body['error'] ?? "Failed to send OTP");
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['is_officer'] ?? false;
+      } else {
+        // Try to parse error as JSON, fallback to status code message
+        try {
+          final body = jsonDecode(response.body);
+          throw Exception(body['error'] ?? "Failed to send OTP (Status: ${response.statusCode})");
+        } catch (_) {
+          throw Exception("Server Error: ${response.statusCode}. Please check if backend is running correctly.");
+        }
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception("Connection Error: $e");
     }
   }
 
@@ -47,26 +57,35 @@ class AuthService {
     };
     if (role != null) body["role"] = role;
 
-    final response = await ApiClient.publicPost(
-      "/api/auth/citizen/verify-otp",
-      body,
-    );
-
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-      await SecureTokenStorage.saveAuthData(
-        accessToken: body['token'] ?? '',
-        refreshToken: body['refresh_token'] ?? '',
-        role: body['role'] ?? 'CITIZEN',
+    try {
+      final response = await ApiClient.publicPost(
+        "/api/auth/verify-otp",
+        body,
       );
-      if (body['user_id'] != null) {
-        await SecureTokenStorage.saveUserId(body['user_id'].toString());
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        await SecureTokenStorage.saveAuthData(
+          accessToken: body['token'] ?? '',
+          refreshToken: body['refresh_token'] ?? '',
+          role: body['role'] ?? 'CITIZEN',
+        );
+        if (body['user_id'] != null) {
+          await SecureTokenStorage.saveUserId(body['user_id'].toString());
+        }
+        await SecureTokenStorage.savePhone(phoneNumber);
+        return body;
+      } else {
+        try {
+          final body = jsonDecode(response.body);
+          throw Exception(body['error'] ?? "Invalid OTP");
+        } catch (_) {
+          throw Exception("Server Error: ${response.statusCode}");
+        }
       }
-      await SecureTokenStorage.savePhone(phoneNumber);
-      return body;
-    } else {
-      final body = jsonDecode(response.body);
-      throw Exception(body['error'] ?? "Invalid OTP");
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception("Connection Error: $e");
     }
   }
 

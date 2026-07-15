@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../core/services/auth_service.dart';
+import 'login_screen.dart';
 import '../core/services/location_service.dart';
 import '../modules/ugss_monitoring/ugss_module.dart';
 import '../modules/water_utility/water_utility_module.dart';
@@ -64,6 +66,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 backgroundColor: Colors.blue.shade50,
               ),
             ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Color(0xFFD32F2F)),
+            tooltip: 'Logout',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text("Logout"),
+                  content: const Text("Are you sure you want to logout?"),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Logout", style: TextStyle(color: Colors.red))),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                await AuthService.logout();
+                if (mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
+              }
+            },
+          ),
         ],
       ),
       body: SingleChildScrollView(

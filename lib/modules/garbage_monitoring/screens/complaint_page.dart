@@ -9,6 +9,9 @@ import 'package:smart_city_container/core/utils/api_constants.dart';
 import 'package:smart_city_container/core/utils/secure_token_storage.dart';
 import 'package:smart_city_container/core/services/api_client.dart';
 import 'package:smart_city_container/core/theme/app_colors.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+import '../../../core/services/location_service.dart';
 import 'success_page.dart';
 
 class ComplaintPage extends StatefulWidget {
@@ -29,6 +32,8 @@ class _ComplaintPageState extends State<ComplaintPage> {
   DateTime? _noticedDate;
   XFile? _pickedImage;
   bool _isSubmitting = false;
+  bool _isFetchingLocation = false;
+  Position? _currentPosition;
   final ImagePicker _picker = ImagePicker();
 
   final List<String> _categories = [
@@ -43,13 +48,52 @@ class _ComplaintPageState extends State<ComplaintPage> {
   final List<String> _severities = ['Low', 'Medium', 'High'];
   final TextEditingController _otherCategoryController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    _autoFillLocation();
+  }
+
+  Future<void> _autoFillLocation() async {
+    setState(() => _isFetchingLocation = true);
+    try {
+      final pos = await LocationService.getCurrentLocation();
+      _currentPosition = pos;
+
+      // 1. Get Ward from location data (wards.json)
+      final ward = await LocationService.getWardFromLocation(pos.latitude, pos.longitude);
+      if (ward != null) {
+        _wardController.text = ward;
+      }
+
+      // 2. Get Address details from geocoding
+      if (!kIsWeb) {
+        List<Placemark> placemarks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+        if (placemarks.isNotEmpty) {
+          final place = placemarks.first;
+          setState(() {
+            _streetController.text = place.street ?? "";
+            _areaController.text = place.subLocality ?? place.locality ?? "";
+            _cityController.text = place.locality ?? "Rajapalayam";
+          });
+        }
+      } else {
+        _cityController.text = "Rajapalayam";
+      }
+    } catch (e) {
+      debugPrint("Error auto-filling location: $e");
+    } finally {
+      if (mounted) setState(() => _isFetchingLocation = false);
+    }
+  }
+
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 70,
+        maxWidth: 600, // Reduced size for web performance
+        maxHeight: 600,
+        imageQuality: 60, // Lower quality to keep base64 string short
       );
       if (image != null) {
         setState(() {
@@ -62,9 +106,9 @@ class _ComplaintPageState extends State<ComplaintPage> {
   }
 
   Future<void> _submitComplaint() async {
-    if (_selectedCategories.isEmpty || _selectedSeverity == null || _streetController.text.isEmpty || _noticedDate == null || _pickedImage == null) {
+    if (_selectedCategories.isEmpty || _selectedSeverity == null || _streetController.text.isEmpty || _noticedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields and upload a photo')),
+        const SnackBar(content: Text('Please fill in all required fields')),
       );
       return;
     }
@@ -72,8 +116,11 @@ class _ComplaintPageState extends State<ComplaintPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      final bytes = await _pickedImage!.readAsBytes();
-      final imageBase64 = base64Encode(bytes);
+      String imageBase64 = "";
+      if (_pickedImage != null) {
+        final bytes = await _pickedImage!.readAsBytes();
+        imageBase64 = base64Encode(bytes);
+      }
 
       final Map<String, dynamic> payload = {
         'module_id': 6, // Solid Waste
@@ -83,8 +130,8 @@ class _ComplaintPageState extends State<ComplaintPage> {
             : 'Issue noticed on ${_noticedDate!.day}/${_noticedDate!.month}/${_noticedDate!.year}',
         'ward_no': int.tryParse(_wardController.text) ?? 1,
         'address': '${_streetController.text}, ${_areaController.text}, ${_cityController.text}',
-        'latitude': 0.0,
-        'longitude': 0.0,
+        'latitude': _currentPosition?.latitude ?? 0.0,
+        'longitude': _currentPosition?.longitude ?? 0.0,
         'photo': imageBase64,
       };
 
@@ -106,17 +153,15 @@ class _ComplaintPageState extends State<ComplaintPage> {
       }
     } catch (e) {
       debugPrint("Complaint submission error: $e");
-      String displayError = e.toString().replaceAll('Exception: ', '');
-      if (displayError.contains('OperationError')) {
-        displayError = "Connection failed. Please ensure the backend is running and image size is small.";
-      }
+      String displayError = e.toString();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $displayError'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
+            duration: const Duration(seconds: 10),
+            action: SnackBarAction(label: "DISMISS", textColor: Colors.white, onPressed: () {}),
           ),
         );
       }
@@ -146,16 +191,22 @@ class _ComplaintPageState extends State<ComplaintPage> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               color: AppColors.primary.withOpacity(0.1),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.location_on, color: AppColors.primary, size: 18),
-                  SizedBox(width: 8),
+                  const Icon(Icons.location_on, color: AppColors.primary, size: 18),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Provide issue location details',
-                      style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w500),
+                      _isFetchingLocation ? 'Detecting your location...' : 'Location accurately detected',
+                      style: const TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                   ),
+                  if (_isFetchingLocation)
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                    ),
                 ],
               ),
             ),

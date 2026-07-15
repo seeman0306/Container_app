@@ -100,10 +100,10 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		userID := int(claims["user_id"].(float64))
+		phone := claims["phone"].(string)
 		role := claims["role"].(string)
 
-		c.Set("user_id", userID)
+		c.Set("phone", phone)
 		c.Set("role", role)
 		c.Next()
 	}
